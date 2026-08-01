@@ -550,11 +550,13 @@
     </div>
   </div>
 
+  <!-- FIRESTORE & FIREBASE AUTHENTICATION SCRIPT -->
   <script type="module">
     import { initializeApp, getApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
     import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, updateDoc, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
+    // Firebase Config Block
     const firebaseConfig = {
       apiKey: "AIzaSyADeYGpzhHe2kRP6nRumsvjYhRk-Y45ssI",
       authDomain: "okcpdroster.firebaseapp.com",
@@ -565,10 +567,12 @@
       measurementId: "G-Y2V2CYH31P"
     };
 
+    // Initialize Firebase & Cloud Firestore
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
 
+    // Secondary App instance for provisioning accounts without logging out current Admin
     let secondaryApp;
     try {
       secondaryApp = getApp("SecondaryApp");
@@ -610,6 +614,7 @@
       resetAuthModal(); 
     };
 
+    // Check Admin Role in Firestore "userRoles" collection
     async function checkUserRole(email) {
       if (!email) return false;
       const cleanEmail = email.trim().toLowerCase();
@@ -637,6 +642,7 @@
       document.getElementById('stat-suspended').textContent = suspended;
     }
 
+    // Real-Time Firestore Subscription
     function startRosterListener() {
       if (unsubscribeRoster) unsubscribeRoster();
 
@@ -654,12 +660,13 @@
           console.error("Firestore error:", error);
           const tbody = document.getElementById('roster-body');
           tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 2rem; color: var(--danger);">
-            Permission Error: Verify Firebase Rules allow read access. (${error.code})
+            Firestore Permission Error: Check Security Rules in Firebase Console. (${error.code})
           </td></tr>`;
         }
       );
     }
 
+    // Firebase Auth State Listener
     onAuthStateChanged(auth, async (user) => {
       currentUser = user;
       const lockedScreen = document.getElementById('locked-screen');
@@ -708,6 +715,7 @@
       }
     });
 
+    // Render Table UI
     function renderTable() {
       const tbody = document.getElementById('roster-body');
       const searchTerm = document.getElementById('search-input').value.toLowerCase();
@@ -723,7 +731,7 @@
       });
 
       if (filtered.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 2.5rem; color: var(--text-dim);">No matching personnel records found in system.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 2.5rem; color: var(--text-dim);">No matching personnel records found in Firestore.</td></tr>';
         return;
       }
 
@@ -751,9 +759,9 @@
         tbody.appendChild(tr);
       });
 
-      // Refresh vector icons inside updated dynamic DOM
       if (window.lucide) lucide.createIcons();
 
+      // Delete Record Event
       document.querySelectorAll('.delete-btn').forEach(button => {
         button.addEventListener('click', async (e) => {
           const btn = e.currentTarget;
@@ -764,6 +772,7 @@
         });
       });
 
+      // Edit Record Event
       document.querySelectorAll('.edit-btn').forEach(button => {
         button.addEventListener('click', (e) => {
           const btn = e.currentTarget;
@@ -818,6 +827,7 @@
       }
     });
 
+    // Authenticate / Register User
     authForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const email = document.getElementById('auth-email').value.trim();
@@ -847,6 +857,7 @@
       }
     });
 
+    // Add Officer to Firestore
     document.getElementById('add-officer-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       if (!currentUser || !isUserAdmin) {
@@ -868,6 +879,7 @@
       }
     });
 
+    // Provision New User Account with Roles in Firestore
     document.getElementById('create-cred-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       if (!currentUser || !isUserAdmin) {
@@ -907,6 +919,7 @@
       }
     });
 
+    // Save Edited Officer Data in Firestore
     document.getElementById('edit-officer-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const docId = document.getElementById('edit-doc-id').value;
@@ -925,7 +938,7 @@
       }
     });
 
-    // Initialize Icons
+    // Initialize Lucide Icons
     window.addEventListener('DOMContentLoaded', () => {
       if (window.lucide) lucide.createIcons();
     });
