@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OKCPD Personnel Roster & Command Terminal</title>
+  <!-- Google Fonts & Lucide Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    :root {
+      --primary-bg: #07090e;
+      --card-bg: #0f141c;
+      --panel-bg: #161e2e;
+      --border-color: #232d3f;
+      --border-focus: #3b82f6;
+      
+      --gold: #f59e0b;
+      --gold-glow: rgba(245, 158, 11, 0.25);
+      --accent: #3b82f6;
+      --accent-hover: #2563eb;
+      
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      --text-dim: #6b7280;
+
+      --danger: #ef4444;
+      --danger-hover: #dc2626;
+      --danger-bg: rgba(239, 68, 68, 0.12);
+      
+      --success: #10b981;
+      --success-bg: rgba(16, 185, 129, 0.12);
+      
+      --warning: #f59e0b;
+      --warning-bg: rgba(245, 158, 11, 0.12);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif; }
+    body { background-color: var(--primary-bg); color: var(--text-main); display: flex; flex-direction: column; min-height: 100vh; background-image: radial-gradient(circle at 50% 0%, rgba(59, 130, 246, 0.05), transparent 40%); }
+
+    /* Header */
+    header {
+      background: rgba(15, 20, 28, 0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border-color);
+      padding: 0.85rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .brand { display: flex; align-items: center; gap: 1rem; }
+    .brand img { height: 48px; width: auto; object-fit: contain; filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.3)); }
+    .brand-text h1 { font-size: 1.15rem; font-weight: 800; color: var(--text-main); letter-spacing: 0.3px; text-transform: uppercase; }
+    .brand-text p { font-size: 0.7rem; color: var(--gold); text-transform: uppercase; font-weight: 700; letter-spacing: 1.5px; margin-top: 1px; }
+
+    .auth-bar { display: flex; align-items: center; gap: 0.75rem; }
+    
+    .user-pill {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      background: var(--panel-bg);
+      padding: 0.4rem 0.9rem;
+      border-radius: 9999px;
+      border: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* Buttons */
+    .btn {
+      background: var(--panel-bg);
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+      padding: 0.55rem 1.1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.85rem;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+    .btn:hover { border-color: var(--text-muted); transform: translateY(-1px); }
+    
+    .btn-gold { 
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); 
+      color: #000; 
+      border: none; 
+      font-weight: 700;
+      box-shadow: 0 4px 14px var(--gold-glow);
+    }
+    .btn-gold:hover { color: #000; filter: brightness(1.1); box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4); }
+    
+    .btn-danger { background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.3); color: var(--danger); }
+    .btn-danger:hover { background: var(--danger); color: #fff; border-color: var(--danger); }
+    
+    .btn-accent { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: #fff; border: none; font-weight: 600; }
+    .btn-accent:hover { filter: brightness(1.1); box-shadow: 0 4px 14px rgba(59, 130, 246, 0.3); }
+
+    main { max-width: 1320px; margin: 2rem auto; padding: 0 1.5rem; width: 100%; flex: 1; }
+
+    /* Locked Screen */
+    #locked-screen {
+      text-align: center;
+      padding: 4rem 2rem;
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      margin-top: 2rem;
+      position: relative;
+      overflow: hidden;
+    }
+    #locked-screen::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    }
+    .lock-icon-wrapper {
+      width: 64px; height: 64px;
+      background: rgba(245, 158, 11, 0.1);
+      color: var(--gold);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 1.5rem;
+      border: 1px solid rgba(245, 158, 11, 0.2);
+    }
+    #locked-screen h2 { color: var(--text-main); margin-bottom: 0.5rem; font-size: 1.75rem; font-weight: 800; }
+    #locked-screen p { color: var(--text-muted); margin-bottom: 2rem; max-width: 480px; margin-left: auto; margin-right: auto; line-height: 1.6; font-size: 0.95rem; }
+
+    #roster-content { display: none; }
+
+    /* Admin Suite Layout */
+    .admin-panel {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      display: none;
+      position: relative;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+    }
+    .admin-panel.active { display: block; }
+    
+    .admin-header { 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      padding-bottom: 1rem;
+      margin-bottom: 1.5rem;
+      border-bottom: 1px solid var(--border-color); 
+    }
+    .admin-header-title { display: flex; align-items: center; gap: 0.75rem; }
+    .admin-header-title i { color: var(--gold); }
+    .admin-panel h2 { color: var(--text-main); font-size: 1.15rem; font-weight: 800; letter-spacing: 0.3px; }
+    
+    .admin-badge {
+      background: rgba(245, 158, 11, 0.12);
+      color: var(--gold);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      padding: 0.3rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.7rem;
+      font-weight: 800;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .admin-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+    }
+    @media (max-width: 900px) { .admin-grid { grid-template-columns: 1fr; } }
+
+    .admin-card {
+      background: var(--panel-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.25rem;
+    }
+
+    .admin-section-title {
+      font-size: 0.85rem;
+      color: var(--gold);
+      margin-bottom: 1rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem; margin-bottom: 1rem; }
+    .form-group { display: flex; flex-direction: column; gap: 0.35rem; }
+    .form-group label { font-size: 0.75rem; font-weight: 600; color: var(--text-muted); }
+
+    input, select {
+      width: 100%;
+      padding: 0.65rem 0.85rem;
+      background: var(--primary-bg);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      border-radius: 8px;
+      font-size: 0.85rem;
+      transition: all 0.2s ease;
+    }
+    input:focus, select:focus { border-color: var(--gold); outline: none; box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15); }
+
+    /* Roster Metrics Dashboard */
+    .metrics-bar {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .metric-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      padding: 1rem 1.25rem;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .metric-title { font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; }
+    .metric-value { font-size: 1.5rem; font-weight: 800; color: var(--text-main); margin-top: 0.2rem; font-family: 'JetBrains Mono', monospace; }
+    .metric-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); }
+
+    /* Search Toolbar */
+    .toolbar-bar { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1rem; }
+    .search-box { flex: 1; position: relative; }
+    .search-box input { padding-left: 2.5rem; background: var(--card-bg); border-color: var(--border-color); font-size: 0.9rem; border-radius: 10px; }
+    .search-box i { position: absolute; left: 0.9rem; top: 50%; transform: translateY(-50%); color: var(--text-dim); }
+
+    /* Table */
+    .roster-table-container { 
+      background: var(--card-bg); 
+      border-radius: 14px; 
+      overflow: hidden; 
+      border: 1px solid var(--border-color); 
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3); 
+    }
+    table { width: 100%; border-collapse: collapse; text-align: left; }
+    th { background: var(--panel-bg); color: var(--text-muted); padding: 0.85rem 1.25rem; font-size: 0.7rem; text-transform: uppercase; font-weight: 800; letter-spacing: 1px; border-bottom: 1px solid var(--border-color); }
+    td { padding: 1rem 1.25rem; border-bottom: 1px solid var(--border-color); font-size: 0.875rem; color: var(--text-main); vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover { background-color: rgba(255, 255, 255, 0.015); }
+
+    .badge-number { font-weight: 700; color: var(--gold); font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; }
+    
+    .status-pill { 
+      display: inline-flex; 
+      align-items: center; 
+      gap: 0.4rem; 
+      padding: 0.25rem 0.65rem; 
+      border-radius: 9999px; 
+      font-size: 0.725rem; 
+      font-weight: 700; 
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .status-pill::before { content: ''; width: 6px; height: 6px; border-radius: 50%; }
+    
+    .status-active { background: var(--success-bg); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.2); }
+    .status-active::before { background: var(--success); box-shadow: 0 0 6px var(--success); }
+    
+    .status-loa { background: var(--warning-bg); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.2); }
+    .status-loa::before { background: var(--warning); }
+    
+    .status-suspended { background: var(--danger-bg); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.2); }
+    .status-suspended::before { background: var(--danger); }
+
+    .action-btns { display: flex; gap: 0.4rem; }
+
+    /* Modals */
+    .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(5, 7, 12, 0.85); backdrop-filter: blur(8px); display: none; justify-content: center; align-items: center; z-index: 1000; }
+    .modal.active { display: flex; }
+    .modal-content { 
+      background: var(--card-bg); 
+      padding: 2rem; 
+      border-radius: 16px; 
+      border: 1px solid var(--border-color); 
+      width: 100%; 
+      max-width: 440px; 
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7); 
+      position: relative;
+    }
+    .modal-content h3 { color: var(--text-main); margin-bottom: 1.25rem; text-align: center; font-size: 1.25rem; font-weight: 800; }
+    .toggle-auth { color: var(--accent); font-size: 0.8rem; text-align: center; margin-top: 1.25rem; cursor: pointer; font-weight: 600; }
+    .toggle-auth:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <img src="ocpd-blank-seal_white (1).jpg" alt="OKCPD Logo" id="header-logo" onerror="this.onerror=null; this.src='logo.png';" />
+      <div class="brand-text">
+        <h1>Oklahoma City Police</h1>
+        <p>Personnel Command Terminal</p>
+      </div>
+    </div>
+    <div class="auth-bar">
+      <span id="user-display" class="user-pill" style="display:none;"><i data-lucide="shield"></i> <span id="user-display-text"></span></span>
+      <button id="login-btn" class="btn btn-gold"><i data-lucide="log-in" style="width:16px;"></i> Sign In / Register</button>
+      <button id="logout-btn" class="btn btn-danger" style="display:none;"><i data-lucide="log-out" style="width:16px;"></i> Sign Out</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Locked Screen -->
+    <section id="locked-screen">
+      <div class="lock-icon-wrapper">
+        <i data-lucide="lock" style="width:28px; height:28px;"></i>
+      </div>
+      <h2>Restricted Roster Terminal</h2>
+      <p>Secure law enforcement database access. Please authenticate with department credentials to access personnel records.</p>
+      <button class="btn btn-gold" style="padding: 0.75rem 2.25rem; font-size: 0.95rem;" id="open-login-from-lock"><i data-lucide="key-round" style="width:18px;"></i> Authenticate Session</button>
+    </section>
+
+    <!-- Roster Content Area -->
+    <div id="roster-content">
+      
+      <!-- Metrics Dashboard -->
+      <div class="metrics-bar">
+        <div class="metric-card">
+          <div>
+            <div class="metric-title">Total Personnel</div>
+            <div class="metric-value" id="stat-total">0</div>
+          </div>
+          <div class="metric-icon" style="color:var(--accent)"><i data-lucide="users"></i></div>
+        </div>
+        <div class="metric-card">
+          <div>
+            <div class="metric-title">Active Duty</div>
+            <div class="metric-value" id="stat-active" style="color:var(--success)">0</div>
+          </div>
+          <div class="metric-icon" style="color:var(--success)"><i data-lucide="user-check"></i></div>
+        </div>
+        <div class="metric-card">
+          <div>
+            <div class="metric-title">On Leave</div>
+            <div class="metric-value" id="stat-loa" style="color:var(--warning)">0</div>
+          </div>
+          <div class="metric-icon" style="color:var(--warning)"><i data-lucide="clock"></i></div>
+        </div>
+        <div class="metric-card">
+          <div>
+            <div class="metric-title">Suspended</div>
+            <div class="metric-value" id="stat-suspended" style="color:var(--danger)">0</div>
+          </div>
+          <div class="metric-icon" style="color:var(--danger)"><i data-lucide="user-x"></i></div>
+        </div>
+      </div>
+
+      <!-- Admin Panel -->
+      <section id="admin-panel" class="admin-panel">
+        <div class="admin-header">
+          <div class="admin-header-title">
+            <i data-lucide="shield-alert" style="width:22px; height:22px;"></i>
+            <h2>Command Staff Administrative Console</h2>
+          </div>
+          <span class="admin-badge">ADMIN MODE ACTIVE</span>
+        </div>
+
+        <div class="admin-grid">
+          <!-- Add Officer Box -->
+          <div class="admin-card">
+            <div class="admin-section-title"><i data-lucide="user-plus" style="width:16px;"></i> Provision Personnel Record</div>
+            <form id="add-officer-form">
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>Badge #</label>
+                  <input type="text" id="off-badge" placeholder="e.g. 4021" required />
+                </div>
+                <div class="form-group">
+                  <label>Full Name</label>
+                  <input type="text" id="off-name" placeholder="e.g. J. Barstow" required />
+                </div>
+                <div class="form-group">
+                  <label>Rank</label>
+                  <select id="off-rank" required>
+                    <option value="">Select Rank</option>
+                    <option value="Chief of Police">Chief of Police</option>
+                    <option value="Deputy Chief">Deputy Chief</option>
+                    <option value="Captain">Captain</option>
+                    <option value="Lieutenant">Lieutenant</option>
+                    <option value="Sergeant">Sergeant</option>
+                    <option value="Corporal">Corporal</option>
+                    <option value="Officer First Class">Officer First Class</option>
+                    <option value="Police Officer">Police Officer</option>
+                    <option value="Cadet">Cadet</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Assignment / Division</label>
+                  <input type="text" id="off-unit" placeholder="e.g. Patrol / Gang Unit" required />
+                </div>
+                <div class="form-group" style="grid-column: span 2;">
+                  <label>Duty Status</label>
+                  <select id="off-status">
+                    <option value="Active">Active Duty</option>
+                    <option value="On Leave">On Leave (LOA)</option>
+                    <option value="Suspended">Suspended</option>
+                  </select>
+                </div>
+              </div>
+              <button type="submit" class="btn btn-gold" style="width: 100%;"><i data-lucide="plus" style="width:16px;"></i> Add Officer to Roster</button>
+            </form>
+          </div>
+
+          <!-- Provision Auth Box -->
+          <div class="admin-card">
+            <div class="admin-section-title"><i data-lucide="key" style="width:16px;"></i> Account & Permissions Provisioning</div>
+            <form id="create-cred-form">
+              <div class="form-grid" style="grid-template-columns: 1fr;">
+                <div class="form-group">
+                  <label>Department Email</label>
+                  <input type="email" id="new-user-email" placeholder="officer@okc.gov" required />
+                </div>
+                <div class="form-group">
+                  <label>Initial Password</label>
+                  <input type="password" id="new-user-pass" placeholder="••••••••" minlength="6" required />
+                </div>
+                <div class="form-group">
+                  <label>Access Privilege Level</label>
+                  <select id="new-user-role" required>
+                    <option value="normal">Standard Officer (Roster View Only)</option>
+                    <option value="admin">Command Staff (Full Administrator)</option>
+                  </select>
+                </div>
+              </div>
+              <button type="submit" id="create-account-btn" class="btn btn-accent" style="width: 100%; margin-top: 0.2rem;"><i data-lucide="user-check" style="width:16px;"></i> Create Credentials</button>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <!-- Search Toolbar -->
+      <div class="toolbar-bar">
+        <div class="search-box">
+          <i data-lucide="search" style="width:18px; height:18px;"></i>
+          <input type="text" id="search-input" placeholder="Filter roster by badge, name, rank, or assignment..." />
+        </div>
+      </div>
+
+      <!-- Main Table -->
+      <div class="roster-table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Badge #</th>
+              <th>Officer Name</th>
+              <th>Rank</th>
+              <th>Assignment</th>
+              <th>Status</th>
+              <th class="admin-only" style="display:none; text-align: right;">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="roster-body">
+            <tr><td colspan="6" style="text-align:center; padding: 3rem; color: var(--text-dim);">Loading roster data...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <!-- Login Modal -->
+  <div id="login-modal" class="modal">
+    <div class="modal-content">
+      <h3 id="modal-title">Personnel Portal Login</h3>
+      <form id="auth-form">
+        <div class="form-group" style="margin-bottom: 1rem;">
+          <label>Department Email</label>
+          <input type="email" id="auth-email" placeholder="badge@okc.gov" required />
+        </div>
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+          <label>Password</label>
+          <input type="password" id="auth-password" placeholder="••••••••" required />
+        </div>
+        <div style="display:flex; justify-content: flex-end; gap: 0.5rem;">
+          <button type="button" id="close-modal-btn" class="btn btn-danger">Cancel</button>
+          <button type="submit" id="auth-submit-btn" class="btn btn-gold">Sign In</button>
+        </div>
+        <div id="toggle-mode-btn" class="toggle-auth">Need to register a new account? Click here</div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Edit Officer Modal -->
+  <div id="edit-modal" class="modal">
+    <div class="modal-content">
+      <h3>Edit Personnel Record</h3>
+      <form id="edit-officer-form">
+        <input type="hidden" id="edit-doc-id" />
+        <div class="form-group" style="margin-bottom: 0.75rem;">
+          <label>Badge #</label>
+          <input type="text" id="edit-badge" required />
+        </div>
+        <div class="form-group" style="margin-bottom: 0.75rem;">
+          <label>Officer Name</label>
+          <input type="text" id="edit-name" required />
+        </div>
+        <div class="form-group" style="margin-bottom: 0.75rem;">
+          <label>Rank</label>
+          <select id="edit-rank" required>
+            <option value="Chief of Police">Chief of Police</option>
+            <option value="Deputy Chief">Deputy Chief</option>
+            <option value="Captain">Captain</option>
+            <option value="Lieutenant">Lieutenant</option>
+            <option value="Sergeant">Sergeant</option>
+            <option value="Corporal">Corporal</option>
+            <option value="Officer First Class">Officer First Class</option>
+            <option value="Police Officer">Police Officer</option>
+            <option value="Cadet">Cadet</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom: 0.75rem;">
+          <label>Assignment</label>
+          <input type="text" id="edit-unit" required />
+        </div>
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+          <label>Duty Status</label>
+          <select id="edit-status">
+            <option value="Active">Active</option>
+            <option value="On Leave">On Leave</option>
+            <option value="Suspended">Suspended</option>
+          </select>
+        </div>
+        <div style="display:flex; justify-content: flex-end; gap: 0.5rem;">
+          <button type="button" id="close-edit-modal-btn" class="btn btn-danger">Cancel</button>
+          <button type="submit" class="btn btn-gold">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp, getApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, updateDoc, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyADeYGpzhHe2kRP6nRumsvjYhRk-Y45ssI",
+      authDomain: "okcpdroster.firebaseapp.com",
+      projectId: "okcpdroster",
+      storageBucket: "okcpdroster.firebasestorage.app",
+      messagingSenderId: "163994445196",
+      appId: "1:163994445196:web:88b12e929cd36174df22a9",
+      measurementId: "G-Y2V2CYH31P"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    let secondaryApp;
+    try {
+      secondaryApp = getApp("SecondaryApp");
+    } catch (e) {
+      secondaryApp = initializeApp(firebaseConfig, "SecondaryApp");
+    }
+    const secondaryAuth = getAuth(secondaryApp);
+
+    const PRIMARY_ADMIN = "jacob.barstow@okc.gov";
+
+    let currentUser = null;
+    let isUserAdmin = false;
+    let isRegisterMode = false;
+    let rawOfficersData = [];
+    let unsubscribeRoster = null;
+
+    const loginModal = document.getElementById('login-modal');
+    const editModal = document.getElementById('edit-modal');
+    const authForm = document.getElementById('auth-form');
+
+    const resetAuthModal = () => {
+      authForm.reset();
+      const emailInput = document.getElementById('auth-email');
+      const passInput = document.getElementById('auth-password');
+      emailInput.disabled = false;
+      passInput.disabled = false;
+      emailInput.value = '';
+      passInput.value = '';
+    };
+
+    const openModal = () => { 
+      resetAuthModal(); 
+      loginModal.classList.add('active'); 
+      setTimeout(() => document.getElementById('auth-email').focus(), 100);
+    };
+
+    const closeModal = () => { 
+      loginModal.classList.remove('active'); 
+      resetAuthModal(); 
+    };
+
+    async function checkUserRole(email) {
+      if (!email) return false;
+      const cleanEmail = email.trim().toLowerCase();
+      if (cleanEmail === PRIMARY_ADMIN.toLowerCase()) return true;
+      try {
+        const userDoc = await getDoc(doc(db, "userRoles", cleanEmail));
+        if (userDoc.exists()) {
+          return userDoc.data().role === 'admin';
+        }
+      } catch (e) {
+        console.error("Role check error:", e);
+      }
+      return false;
+    }
+
+    function updateMetrics() {
+      const total = rawOfficersData.length;
+      const active = rawOfficersData.filter(o => o.status === 'Active' || !o.status).length;
+      const loa = rawOfficersData.filter(o => o.status === 'On Leave').length;
+      const suspended = rawOfficersData.filter(o => o.status === 'Suspended').length;
+
+      document.getElementById('stat-total').textContent = total;
+      document.getElementById('stat-active').textContent = active;
+      document.getElementById('stat-loa').textContent = loa;
+      document.getElementById('stat-suspended').textContent = suspended;
+    }
+
+    function startRosterListener() {
+      if (unsubscribeRoster) unsubscribeRoster();
+
+      unsubscribeRoster = onSnapshot(
+        collection(db, "officers"), 
+        (snapshot) => {
+          rawOfficersData = [];
+          snapshot.forEach((docSnap) => {
+            rawOfficersData.push({ id: docSnap.id, ...docSnap.data() });
+          });
+          updateMetrics();
+          renderTable();
+        },
+        (error) => {
+          console.error("Firestore error:", error);
+          const tbody = document.getElementById('roster-body');
+          tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 2rem; color: var(--danger);">
+            Permission Error: Verify Firebase Rules allow read access. (${error.code})
+          </td></tr>`;
+        }
+      );
+    }
+
+    onAuthStateChanged(auth, async (user) => {
+      currentUser = user;
+      const lockedScreen = document.getElementById('locked-screen');
+      const rosterContent = document.getElementById('roster-content');
+      const adminPanel = document.getElementById('admin-panel');
+      const loginBtn = document.getElementById('login-btn');
+      const logoutBtn = document.getElementById('logout-btn');
+      const userDisplay = document.getElementById('user-display');
+      const userDisplayText = document.getElementById('user-display-text');
+      const adminColumns = document.querySelectorAll('.admin-only');
+
+      if (user) {
+        isUserAdmin = await checkUserRole(user.email);
+
+        lockedScreen.style.display = 'none';
+        rosterContent.style.display = 'block';
+
+        loginBtn.style.display = 'none';
+        logoutBtn.style.display = 'inline-flex';
+        userDisplay.style.display = 'inline-flex';
+        userDisplayText.textContent = user.email + (isUserAdmin ? " (Admin)" : "");
+
+        if (isUserAdmin) {
+          adminPanel.classList.add('active');
+          adminColumns.forEach(col => col.style.display = 'table-cell');
+        } else {
+          adminPanel.classList.remove('active');
+          adminColumns.forEach(col => col.style.display = 'none');
+        }
+
+        startRosterListener();
+
+      } else {
+        isUserAdmin = false;
+        lockedScreen.style.display = 'block';
+        rosterContent.style.display = 'none';
+
+        adminPanel.classList.remove('active');
+        loginBtn.style.display = 'inline-flex';
+        logoutBtn.style.display = 'none';
+        userDisplay.style.display = 'none';
+        adminColumns.forEach(col => col.style.display = 'none');
+
+        if (unsubscribeRoster) unsubscribeRoster();
+        resetAuthModal();
+      }
+    });
+
+    function renderTable() {
+      const tbody = document.getElementById('roster-body');
+      const searchTerm = document.getElementById('search-input').value.toLowerCase();
+      tbody.innerHTML = '';
+
+      const filtered = rawOfficersData.filter(off => {
+        return (
+          (off.name && off.name.toLowerCase().includes(searchTerm)) ||
+          (off.badge && off.badge.toString().toLowerCase().includes(searchTerm)) ||
+          (off.rank && off.rank.toLowerCase().includes(searchTerm)) ||
+          (off.unit && off.unit.toLowerCase().includes(searchTerm))
+        );
+      });
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 2.5rem; color: var(--text-dim);">No matching personnel records found in system.</td></tr>';
+        return;
+      }
+
+      filtered.forEach((data) => {
+        const tr = document.createElement('tr');
+        
+        let statusClass = 'status-active';
+        let statusLabel = 'Active';
+        if (data.status === 'On Leave') { statusClass = 'status-loa'; statusLabel = 'On Leave'; }
+        if (data.status === 'Suspended') { statusClass = 'status-suspended'; statusLabel = 'Suspended'; }
+
+        tr.innerHTML = `
+          <td class="badge-number">#${data.badge}</td>
+          <td style="font-weight: 700; color: #fff;">${data.name}</td>
+          <td>${data.rank}</td>
+          <td>${data.unit}</td>
+          <td><span class="status-pill ${statusClass}">${statusLabel}</span></td>
+          <td class="admin-only" style="display:${isUserAdmin ? 'table-cell' : 'none'}; text-align: right;">
+            <div class="action-btns" style="justify-content: flex-end;">
+              <button class="btn btn-accent edit-btn" data-id="${data.id}" style="padding:0.35rem 0.65rem; font-size:0.75rem;"><i data-lucide="edit-2" style="width:14px;"></i></button>
+              <button class="btn btn-danger delete-btn" data-id="${data.id}" style="padding:0.35rem 0.65rem; font-size:0.75rem;"><i data-lucide="trash-2" style="width:14px;"></i></button>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      // Refresh vector icons inside updated dynamic DOM
+      if (window.lucide) lucide.createIcons();
+
+      document.querySelectorAll('.delete-btn').forEach(button => {
+        button.addEventListener('click', async (e) => {
+          const btn = e.currentTarget;
+          const id = btn.getAttribute('data-id');
+          if (currentUser && isUserAdmin && confirm("Are you sure you want to permanently remove this officer record?")) {
+            await deleteDoc(doc(db, "officers", id));
+          }
+        });
+      });
+
+      document.querySelectorAll('.edit-btn').forEach(button => {
+        button.addEventListener('click', (e) => {
+          const btn = e.currentTarget;
+          const id = btn.getAttribute('data-id');
+          const officer = rawOfficersData.find(o => o.id === id);
+          if (officer) {
+            document.getElementById('edit-doc-id').value = officer.id;
+            document.getElementById('edit-badge').value = officer.badge;
+            document.getElementById('edit-name').value = officer.name;
+            document.getElementById('edit-rank').value = officer.rank;
+            document.getElementById('edit-unit').value = officer.unit;
+            document.getElementById('edit-status').value = officer.status || 'Active';
+            editModal.classList.add('active');
+          }
+        });
+      });
+    }
+
+    document.getElementById('search-input').addEventListener('input', renderTable);
+
+    const modalTitle = document.getElementById('modal-title');
+    const authSubmitBtn = document.getElementById('auth-submit-btn');
+    const toggleModeBtn = document.getElementById('toggle-mode-btn');
+
+    document.getElementById('login-btn').addEventListener('click', openModal);
+    document.getElementById('open-login-from-lock').addEventListener('click', openModal);
+    document.getElementById('close-modal-btn').addEventListener('click', closeModal);
+    document.getElementById('close-edit-modal-btn').addEventListener('click', () => editModal.classList.remove('active'));
+
+    toggleModeBtn.addEventListener('click', () => {
+      isRegisterMode = !isRegisterMode;
+      if (isRegisterMode) {
+        modalTitle.textContent = "Register Department Account";
+        authSubmitBtn.textContent = "Create Account";
+        toggleModeBtn.textContent = "Already have an account? Sign In";
+      } else {
+        modalTitle.textContent = "Personnel Portal Login";
+        authSubmitBtn.textContent = "Sign In";
+        toggleModeBtn.textContent = "Need to register a new account? Click here";
+      }
+    });
+
+    document.getElementById('logout-btn').addEventListener('click', async () => {
+      try {
+        await signOut(auth);
+        await signOut(secondaryAuth);
+        currentUser = null;
+        isUserAdmin = false;
+        closeModal();
+      } catch (err) {
+        console.error("Logout error:", err);
+      }
+    });
+
+    authForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('auth-email').value.trim();
+      const password = document.getElementById('auth-password').value;
+
+      try {
+        if (isRegisterMode) {
+          await createUserWithEmailAndPassword(auth, email, password);
+          await setDoc(doc(db, "userRoles", email.toLowerCase()), { role: "normal" });
+          alert("Account created successfully!");
+        } else {
+          try {
+            await signInWithEmailAndPassword(auth, email, password);
+          } catch (signInErr) {
+            if ((signInErr.code === 'auth/user-not-found' || signInErr.code === 'auth/invalid-credential') && email.toLowerCase() === PRIMARY_ADMIN.toLowerCase()) {
+              await createUserWithEmailAndPassword(auth, email, password);
+              await setDoc(doc(db, "userRoles", email.toLowerCase()), { role: "admin" });
+              alert("Primary Admin account created and signed in!");
+            } else {
+              throw signInErr;
+            }
+          }
+        }
+        closeModal();
+      } catch (err) {
+        alert("Authentication Error: " + err.message);
+      }
+    });
+
+    document.getElementById('add-officer-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!currentUser || !isUserAdmin) {
+        alert("Unauthorized: Admin access required.");
+        return;
+      }
+
+      const badge = document.getElementById('off-badge').value;
+      const name = document.getElementById('off-name').value;
+      const rank = document.getElementById('off-rank').value;
+      const unit = document.getElementById('off-unit').value;
+      const status = document.getElementById('off-status').value;
+
+      try {
+        await addDoc(collection(db, "officers"), { badge, name, rank, unit, status, createdAt: new Date() });
+        document.getElementById('add-officer-form').reset();
+      } catch (err) {
+        alert("Error adding personnel: " + err.message);
+      }
+    });
+
+    document.getElementById('create-cred-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!currentUser || !isUserAdmin) {
+        alert("Unauthorized: Admin access required.");
+        return;
+      }
+
+      const newEmail = document.getElementById('new-user-email').value.trim();
+      const newPass = document.getElementById('new-user-pass').value;
+      const role = document.getElementById('new-user-role').value;
+      const createBtn = document.getElementById('create-account-btn');
+
+      try {
+        await createUserWithEmailAndPassword(secondaryAuth, newEmail, newPass);
+        await signOut(secondaryAuth);
+
+        await setDoc(doc(db, "userRoles", newEmail.toLowerCase()), { role: role });
+
+        document.getElementById('create-cred-form').reset();
+
+        const roleLabel = role === 'admin' ? 'Command Staff (Admin)' : 'Standard Officer (Viewer)';
+        alert(`✅ SUCCESS: Credentials Provisioned!\n\nEmail: ${newEmail}\nAccess Level: ${roleLabel}`);
+
+        const originalText = createBtn.innerHTML;
+        createBtn.innerHTML = "<i data-lucide='check'></i> Credentials Created!";
+        createBtn.style.background = "#10b981";
+        if (window.lucide) lucide.createIcons();
+
+        setTimeout(() => {
+          createBtn.innerHTML = originalText;
+          createBtn.style.background = "";
+          if (window.lucide) lucide.createIcons();
+        }, 3000);
+
+      } catch (err) {
+        alert("❌ Account Creation Error: " + err.message);
+      }
+    });
+
+    document.getElementById('edit-officer-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const docId = document.getElementById('edit-doc-id').value;
+      
+      const badge = document.getElementById('edit-badge').value;
+      const name = document.getElementById('edit-name').value;
+      const rank = document.getElementById('edit-rank').value;
+      const unit = document.getElementById('edit-unit').value;
+      const status = document.getElementById('edit-status').value;
+
+      try {
+        await updateDoc(doc(db, "officers", docId), { badge, name, rank, unit, status });
+        editModal.classList.remove('active');
+      } catch (err) {
+        alert("Error updating record: " + err.message);
+      }
+    });
+
+    // Initialize Icons
+    window.addEventListener('DOMContentLoaded', () => {
+      if (window.lucide) lucide.createIcons();
+    });
+  </script>
+</body>
+</html>
