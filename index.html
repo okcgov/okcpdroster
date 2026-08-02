@@ -98,8 +98,6 @@
     
     .btn-danger { background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.3); color: var(--danger); }
     .btn-danger:hover { background: var(--danger); color: #fff; }
-    
-    .btn-accent { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: #fff; border: none; font-weight: 600; }
 
     main { max-width: 1320px; margin: 2rem auto; padding: 0 1.5rem; width: 100%; flex: 1; }
 
@@ -132,9 +130,7 @@
       border-radius: 16px;
       padding: 1.5rem;
       margin-bottom: 2rem;
-      display: none;
     }
-    .admin-panel.active { display: block; }
     
     .admin-header { 
       display: flex; 
@@ -229,7 +225,17 @@
     .modal.active { display: flex; }
     .modal-content { background: var(--card-bg); padding: 2rem; border-radius: 16px; border: 1px solid var(--border-color); width: 100%; max-width: 440px; }
     .modal-content h3 { color: var(--text-main); margin-bottom: 1.25rem; text-align: center; font-size: 1.25rem; font-weight: 800; }
-    .toggle-auth { color: var(--accent); font-size: 0.8rem; text-align: center; margin-top: 1.25rem; cursor: pointer; font-weight: 600; }
+    
+    .accounts-hint {
+      background: var(--panel-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 0.75rem;
+      margin-top: 1rem;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+    .accounts-hint strong { color: var(--gold); display: block; margin-bottom: 0.25rem; }
   </style>
 </head>
 <body>
@@ -244,7 +250,7 @@
     </div>
     <div class="auth-bar">
       <span id="user-display" class="user-pill" style="display:none;"><i data-lucide="shield"></i> <span id="user-display-text"></span></span>
-      <button id="login-btn" class="btn btn-gold"><i data-lucide="log-in" style="width:16px;"></i> Sign In / Register</button>
+      <button id="login-btn" class="btn btn-gold"><i data-lucide="log-in" style="width:16px;"></i> Sign In</button>
       <button id="logout-btn" class="btn btn-danger" style="display:none;"><i data-lucide="log-out" style="width:16px;"></i> Sign Out</button>
     </div>
   </header>
@@ -278,7 +284,7 @@
       </div>
 
       <!-- Admin Panel -->
-      <section id="admin-panel" class="admin-panel active">
+      <section id="admin-panel" class="admin-panel">
         <div class="admin-header">
           <div class="admin-header-title">
             <i data-lucide="shield-alert" style="width:22px; height:22px;"></i>
@@ -314,7 +320,7 @@
                   </select>
                 </div>
                 <div class="form-group">
-                  <label>Assignment / Division</label>
+                  <label>Division</label>
                   <input type="text" id="off-unit" placeholder="e.g. Patrol" required />
                 </div>
                 <div class="form-group">
@@ -361,14 +367,14 @@
     </div>
   </main>
 
-  <!-- Login Modal -->
+  <!-- Local Fake Login Modal -->
   <div id="login-modal" class="modal">
     <div class="modal-content">
-      <h3 id="modal-title">Personnel Portal Login</h3>
+      <h3>Personnel Portal Login</h3>
       <form id="auth-form">
         <div class="form-group" style="margin-bottom: 1rem;">
-          <label>Department Email</label>
-          <input type="email" id="auth-email" placeholder="badge@okc.gov" required />
+          <label>Department Email / Badge ID</label>
+          <input type="email" id="auth-email" placeholder="101@okc.gov" required />
         </div>
         <div class="form-group" style="margin-bottom: 1.5rem;">
           <label>Password</label>
@@ -376,19 +382,25 @@
         </div>
         <div style="display:flex; justify-content: flex-end; gap: 0.5rem;">
           <button type="button" id="close-modal-btn" class="btn btn-danger">Cancel</button>
-          <button type="submit" id="auth-submit-btn" class="btn btn-gold">Sign In</button>
+          <button type="submit" class="btn btn-gold">Sign In</button>
         </div>
-        <div id="toggle-mode-btn" class="toggle-auth">Need to register a new account? Click here</div>
+
+        <div class="accounts-hint">
+          <strong>Pre-Set Department Credentials:</strong>
+          • 101@okc.gov / password123<br>
+          • 102@okc.gov / patrolpassword<br>
+          • admin@okc.gov / admin
+        </div>
       </form>
     </div>
   </div>
 
-  <!-- FIRESTORE SCRIPT -->
+  <!-- FIRESTORE REAL-TIME SCRIPT + FAKE APP AUTH -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
     import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
+    // Firebase Config
     const firebaseConfig = {
       apiKey: "AIzaSyADeYGpzhHe2kRP6nRumsvjYhRk-Y45ssI",
       authDomain: "okcpdroster.firebaseapp.com",
@@ -400,60 +412,81 @@
     };
 
     const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
     const db = getFirestore(app);
 
+    // FAKE ACCOUNTS LIST (Manage email/passwords here inside the app)
+    const FAKE_ACCOUNTS = [
+      { email: "101@okc.gov", password: "password123", rank: "Chief Smith" },
+      { email: "102@okc.gov", password: "patrolpassword", rank: "Lt. Johnson" },
+      { email: "admin@okc.gov", password: "admin", rank: "Command Staff" }
+    ];
+
     let rawOfficersData = [];
-    let isRegisterMode = false;
 
     const loginModal = document.getElementById('login-modal');
 
+    // UI Buttons for Modal
     document.getElementById('login-btn').addEventListener('click', () => loginModal.classList.add('active'));
     document.getElementById('open-login-from-lock').addEventListener('click', () => loginModal.classList.add('active'));
     document.getElementById('close-modal-btn').addEventListener('click', () => loginModal.classList.remove('active'));
 
-    document.getElementById('toggle-mode-btn').addEventListener('click', () => {
-      isRegisterMode = !isRegisterMode;
-      document.getElementById('modal-title').textContent = isRegisterMode ? "Register Department Account" : "Personnel Portal Login";
-      document.getElementById('auth-submit-btn').textContent = isRegisterMode ? "Create Account" : "Sign In";
-    });
-
-    document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
-
-    document.getElementById('auth-form').addEventListener('submit', async (e) => {
+    // Handle Fake Login Submission
+    document.getElementById('auth-form').addEventListener('submit', (e) => {
       e.preventDefault();
-      const email = document.getElementById('auth-email').value.trim();
-      const password = document.getElementById('auth-password').value;
-      try {
-        if (isRegisterMode) {
-          await createUserWithEmailAndPassword(auth, email, password);
-        } else {
-          await signInWithEmailAndPassword(auth, email, password);
-        }
+      const enteredEmail = document.getElementById('auth-email').value.trim().toLowerCase();
+      const enteredPassword = document.getElementById('auth-password').value;
+
+      const matchedUser = FAKE_ACCOUNTS.find(
+        acc => acc.email.toLowerCase() === enteredEmail && acc.password === enteredPassword
+      );
+
+      if (matchedUser) {
+        sessionStorage.setItem('currentUser', JSON.stringify(matchedUser));
+        unlockTerminal(matchedUser);
         loginModal.classList.remove('active');
-      } catch (err) {
-        alert("Auth Notice: " + err.message);
-      }
-    });
-
-    onAuthStateChanged(auth, (user) => {
-      if (user) {
-        document.getElementById('locked-screen').style.display = 'none';
-        document.getElementById('roster-content').style.display = 'block';
-        document.getElementById('login-btn').style.display = 'none';
-        document.getElementById('logout-btn').style.display = 'inline-flex';
-        document.getElementById('user-display').style.display = 'inline-flex';
-        document.getElementById('user-display-text').textContent = user.email;
-        startLiveListener();
+        document.getElementById('auth-form').reset();
       } else {
-        document.getElementById('locked-screen').style.display = 'block';
-        document.getElementById('roster-content').style.display = 'none';
-        document.getElementById('login-btn').style.display = 'inline-flex';
-        document.getElementById('logout-btn').style.display = 'none';
-        document.getElementById('user-display').style.display = 'none';
+        alert("Invalid Department Email or Password!");
       }
     });
 
+    // Handle Logout
+    document.getElementById('logout-btn').addEventListener('click', () => {
+      sessionStorage.removeItem('currentUser');
+      lockTerminal();
+    });
+
+    // Terminal Display Functions
+    function unlockTerminal(user) {
+      document.getElementById('locked-screen').style.display = 'none';
+      document.getElementById('roster-content').style.display = 'block';
+      document.getElementById('login-btn').style.display = 'none';
+      document.getElementById('logout-btn').style.display = 'inline-flex';
+      document.getElementById('user-display').style.display = 'inline-flex';
+      document.getElementById('user-display-text').textContent = `${user.rank} (${user.email})`;
+      startLiveListener();
+    }
+
+    function lockTerminal() {
+      document.getElementById('locked-screen').style.display = 'block';
+      document.getElementById('roster-content').style.display = 'none';
+      document.getElementById('login-btn').style.display = 'inline-flex';
+      document.getElementById('logout-btn').style.display = 'none';
+      document.getElementById('user-display').style.display = 'none';
+    }
+
+    // Check for existing session on page load
+    window.addEventListener('DOMContentLoaded', () => {
+      if (window.lucide) lucide.createIcons();
+      const savedUser = sessionStorage.getItem('currentUser');
+      if (savedUser) {
+        unlockTerminal(JSON.parse(savedUser));
+      } else {
+        lockTerminal();
+      }
+    });
+
+    // REAL-TIME FIRESTORE LISTENER
     function startLiveListener() {
       onSnapshot(collection(db, "officers"), (snapshot) => {
         rawOfficersData = [];
@@ -520,7 +553,7 @@
 
     document.getElementById('search-input').addEventListener('input', renderTable);
 
-    // ADD OFFICER SUBMIT HANDLER
+    // ADD OFFICER SUBMIT HANDLER TO FIRESTORE
     document.getElementById('add-officer-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const badge = document.getElementById('off-badge').value.trim();
@@ -536,8 +569,6 @@
         alert("Error writing to Firestore: " + err.message);
       }
     });
-
-    window.addEventListener('DOMContentLoaded', () => { if (window.lucide) lucide.createIcons(); });
   </script>
 </body>
 </html>
